@@ -87,7 +87,7 @@ const ago=t=>{const s=(Date.now()-t)/1000;if(s<60)return 'just now';if(s<3600)re
 /* ---------- state ---------- */
 let db=null,user=null;
 const S={assignments:[],index:[],questions:[],answers:[],votes:[],mySubs:{},meta:{},myVotes:{},myQs:{},names:{},refs:{},me:{id:null},staff:false,realStaff:false,owner:false,canWrite:true,ready:false,
- draft:{},tab:{},qaSort:'top',qaTopic:'All',qaOpen:false,answering:null,sub:undefined,subKey:'',fb:[],sheet:null,busy:'',err:'',pending:false,unsubFb:null};
+ draft:{},tab:{},qaSort:'top',qFilter:'All',qaTopic:'All',qaOpen:false,answering:null,sub:undefined,subKey:'',fb:[],sheet:null,busy:'',err:'',pending:false,unsubFb:null};
 const getA=id=>S.assignments.find(a=>a.id===id);
 const nm=u=>u===S.me.id?'You':(S.names[u]||'Someone');
 
@@ -168,7 +168,7 @@ function makeDB(me){
   function docRef(p){return{id:p.split('/').pop(),path:p,get:async()=>snap(p),
     set:async d=>{if(!canWrite(p))return deny();STORE[p]=clone(d);persist();},
     update:async d=>{if(!canWrite(p)||!(p in STORE))return deny();merge(STORE[p],clone(d));persist();},
-    delete:async()=>{if(!canWrite(p))return deny();delete STORE[p];persist();},
+    delete:async()=>{const t=p.split('/')[0];if(!canWrite(p)||((t==='questions'||t==='answers')&&!staff))return deny();delete STORE[p];persist();},
     onSnapshot(next){const L=()=>next(snap(p));LISTEN.add(L);setTimeout(L,0);return()=>LISTEN.delete(L);},
     collection:c=>query(p+'/'+c,[],null,null)};}
   return{doc:docRef,collection:p=>query(p,[],null,null)};
@@ -262,6 +262,7 @@ function render(force){
     if(p[0]==='a'&&p[1]){const a=getA(p[1]);title=a?a.title:'Assignment';back=true;html=banner+(a?vAssignment(a):'<div class="empty">Assignment not found.</div>');}
     else if(p[0]==='s'&&p[1]&&p[2]){title='Similarity report';back=true;html=vReport(p[1],p[2]);}
     else if(p[0]==='new'){title='New assignment';back=true;html=vNew();}
+    else if(p[0]==='questions'){title='Questions';html=banner+vNav('questions')+vQuestions();}
     else if(p[0]==='insights'){title='Confusion insights';html=vNav('insights')+(S.staff?vInsights():'<div class="empty">Staff only.</div>');}
     else{html=banner+vNav('list')+vList();}
   }
@@ -275,7 +276,7 @@ $('#viewas').onclick=()=>{sessionStorage.removeItem('pt_session');location.hash=
 $('#back').onclick=()=>{const p=route();location.hash=(p[0]==='s')?'/a/'+p[1]:'/';};
 app.addEventListener('keydown',e=>{if(S.login&&e.key==='Enter'&&e.target.id==='lemail'){e.preventDefault();A.login();}});
 app.addEventListener('focusout',()=>setTimeout(()=>{if(S.pending&&!typing())render();},50));
-const vNav=cur=>`<nav class="top"><button class="btn ${cur==='list'?'primary':''}" data-act="go" data-to="/">Assignments</button>${S.staff?`<button class="btn ${cur==='insights'?'primary':''}" data-act="go" data-to="/insights">Insights</button>`:''}</nav>`;
+const vNav=cur=>`<nav class="top"><button class="btn ${cur==='list'?'primary':''}" data-act="go" data-to="/">Assignments</button><button class="btn ${cur==='questions'?'primary':''}" data-act="go" data-to="/questions">Questions</button>${S.staff?`<button class="btn ${cur==='insights'?'primary':''}" data-act="go" data-to="/insights">Insights</button>`:''}</nav>`;
 
 function vLogin(){
   return `<div class="card" style="max-width:440px;margin:24px auto"><h2 style="margin-top:0">📝 PaperTrail</h2><div class="muted">Sign in with your university email</div>
@@ -364,6 +365,20 @@ function vSubs(a){
 }
 
 /* --- Q&A --- */
+function qCard(q,vm,showA){
+  const d=S.draft;
+    const v=vm[q.id]||{n:0,mine:false},ans=S.answers.filter(x=>x.qid===q.id).sort((x,y)=>(y.staff?1:0)-(x.staff?1:0)||x.at-y.at),hasStaff=ans.some(x=>x.staff);
+    const who=q.anon?'Anonymous':esc(nm(q.by));
+    return `<div class="card q"><button class="vote ${v.mine?'on':''}" data-act="vote" data-id="${q.id}" data-aid="${q.aid}" data-topic="${esc(q.topic)}" ${S.canWrite?'':'disabled'}>▲<b>${v.n}</b></button>
+    <div class="grow"><div>${showA&&getA(q.aid)?`<span class="chip" style="background:var(--accent);color:var(--accent-t)">${esc(getA(q.aid).title)}</span>`:''}<span class="chip">${esc(q.topic)}</span>${q.resolved?(hasStaff?'<span class="chip" style="background:var(--good);color:#fff">Resolved</span>':'<span class="chip" style="background:var(--warn);color:#fff">Marked resolved, answer pending</span>'):(hasStaff?'<span class="chip" style="background:var(--good);color:#fff">Answered by staff</span>':'')}</div>
+    ${q.quote?`<blockquote>${esc(q.quote)}</blockquote>`:''}
+    <div style="white-space:pre-wrap">${esc(q.text)}</div><div class="muted">${who} · ${ago(q.at)}</div>
+    ${ans.map(x=>`<div class="ans"${x.staff?' style="border-left:3px solid var(--good)"':''}><div class="muted">${x.staff?'✓ <b>Staff answer</b> · '+esc(nm(x.by)):'A classmate'} · ${ago(x.at)}</div><div style="white-space:pre-wrap">${esc(x.text)}</div></div>`).join('')}
+    ${S.answering===q.id?`${S.resolveAfter===q.id?'<div class="muted" style="margin-top:8px">Write the answer students will see. The question is marked resolved when you post it.</div>':''}<textarea data-draft="atext" style="margin-top:8px;min-height:70px">${esc(d.atext||'')}</textarea><div class="row" style="margin-top:6px"><button class="btn primary sm" data-act="answer" data-id="${q.id}" data-aid="${q.aid}">${S.resolveAfter===q.id?'Post answer & resolve':'Reply'}</button><button class="btn sm" data-act="answerCancel">Cancel</button></div>`:''}
+    <div class="row" style="margin-top:8px;flex-wrap:wrap"><button class="btn sm" data-act="answerOpen" data-id="${q.id}">Reply</button>
+    ${S.staff?`<button class="btn sm" data-act="resolve" data-id="${q.id}" data-v="${q.resolved?0:1}">${q.resolved?'Reopen':(hasStaff?'Mark resolved':'Answer & resolve')}</button>`:''}
+    ${S.staff?`<button class="btn sm danger" data-act="delQ" data-id="${q.id}">Delete</button>`:''}</div></div></div>`;
+}
 function vQA(a){
   const topics=['General',...(a.topics||[])];
   const qs=S.questions.filter(q=>q.aid===a.id);
@@ -388,20 +403,32 @@ function vQA(a){
   h+=`<div style="margin-bottom:8px">${['All',...topics].map(t=>`<button class="chip ${S.qaTopic===t?'on':''}" data-act="qaTopic" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div>
   <div style="margin-bottom:10px"><button class="chip ${S.qaSort==='top'?'on':''}" data-act="qaSort" data-s="top">Top voted</button><button class="chip ${S.qaSort==='new'?'on':''}" data-act="qaSort" data-s="new">Newest</button></div>`;
   if(!list.length)return h+'<div class="empty">No questions yet. Be the first to ask.</div>';
-  list.forEach(q=>{
-    const v=vm[q.id]||{n:0,mine:false},ans=S.answers.filter(x=>x.qid===q.id).sort((x,y)=>(y.staff?1:0)-(x.staff?1:0)||x.at-y.at),hasStaff=ans.some(x=>x.staff);
-    const who=q.anon?'Anonymous':esc(nm(q.by));
-    h+=`<div class="card q"><button class="vote ${v.mine?'on':''}" data-act="vote" data-id="${q.id}" data-aid="${a.id}" data-topic="${esc(q.topic)}" ${S.canWrite?'':'disabled'}>▲<b>${v.n}</b></button>
-    <div class="grow"><div><span class="chip">${esc(q.topic)}</span>${q.resolved?(hasStaff?'<span class="chip" style="background:var(--good);color:#fff">Resolved</span>':'<span class="chip" style="background:var(--warn);color:#fff">Marked resolved, answer pending</span>'):(hasStaff?'<span class="chip" style="background:var(--good);color:#fff">Answered by staff</span>':'')}</div>
-    ${q.quote?`<blockquote>${esc(q.quote)}</blockquote>`:''}
-    <div style="white-space:pre-wrap">${esc(q.text)}</div><div class="muted">${who} · ${ago(q.at)}</div>
-    ${ans.map(x=>`<div class="ans"${x.staff?' style="border-left:3px solid var(--good)"':''}><div class="muted">${x.staff?'✓ <b>Staff answer</b> · '+esc(nm(x.by)):'A classmate'} · ${ago(x.at)}</div><div style="white-space:pre-wrap">${esc(x.text)}</div></div>`).join('')}
-    ${S.answering===q.id?`${S.resolveAfter===q.id?'<div class="muted" style="margin-top:8px">Write the answer students will see. The question is marked resolved when you post it.</div>':''}<textarea data-draft="atext" style="margin-top:8px;min-height:70px">${esc(d.atext||'')}</textarea><div class="row" style="margin-top:6px"><button class="btn primary sm" data-act="answer" data-id="${q.id}" data-aid="${a.id}">${S.resolveAfter===q.id?'Post answer & resolve':'Reply'}</button><button class="btn sm" data-act="answerCancel">Cancel</button></div>`:''}
-    <div class="row" style="margin-top:8px;flex-wrap:wrap"><button class="btn sm" data-act="answerOpen" data-id="${q.id}">Reply</button>
-    ${S.staff?`<button class="btn sm" data-act="resolve" data-id="${q.id}" data-v="${q.resolved?0:1}">${q.resolved?'Reopen':(hasStaff?'Mark resolved':'Answer & resolve')}</button>`:''}
-    ${(S.staff||q.by===S.me.id||S.myQs[q.id])?`<button class="btn sm danger" data-act="delQ" data-id="${q.id}">Delete</button>`:''}</div></div></div>`;
-  });
+  list.forEach(q=>{h+=qCard(q,vm,false);});
   return h;
+}
+
+
+function vQuestions(){
+  const as=[...S.assignments].sort((a,b)=>(a.due||9e15)-(b.due||9e15)),d=S.draft;
+  const vm={};S.votes.forEach(v=>{(vm[v.qid]=vm[v.qid]||{n:0,mine:false}).n++;});Object.keys(S.myVotes).forEach(q=>{(vm[q]=vm[q]||{n:0,mine:false}).mine=true;});
+  let list=S.questions.filter(q=>S.qFilter==='All'||q.aid===S.qFilter);
+  list.sort(S.qaSort==='top'?((x,y)=>((vm[y.id]||{n:0}).n-(vm[x.id]||{n:0}).n)||y.at-x.at):((x,y)=>y.at-x.at));
+  let h=`<div class="notice">🔒 ${S.staff?'Students\' questions and votes are anonymous to you too: you see totals, never names.':'Questions and votes are anonymous by default. You can read and vote on every question, even before you submit.'}</div>`;
+  if(!as.length)return h+'<div class="empty">No assignments yet.</div>';
+  const sel=getA(d.qaid)?d.qaid:as[0].id,sa=getA(sel),topics=['General',...(sa.topics||[])];
+  h+=S.qaOpen?`<div class="card"><h3 style="margin-top:0">Ask a question</h3>
+  <label>Assignment</label><select data-draft="qaid">${as.map(a=>`<option value="${a.id}" ${a.id===sel?'selected':''}>${esc(a.title)}</option>`).join('')}</select>
+  ${d.quote?`<blockquote>${esc(d.quote)}</blockquote><button class="btn sm" data-act="clearQuote">Remove quoted passage</button>`:''}
+  <label>Topic</label><select data-draft="qtopic">${topics.map(t=>`<option ${((d.qtopic||'General')===t)?'selected':''}>${esc(t)}</option>`).join('')}</select>
+  <label>Your question</label><textarea data-draft="qtext" style="min-height:90px">${esc(d.qtext||'')}</textarea>
+  <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-draft="qanon" ${d.qanon!==false?'checked':''}> Post anonymously (no one, including teachers, can see who asked)</label>
+  ${S.err?`<div class="err">${esc(S.err)}</div>`:''}
+  <div style="margin-top:10px" class="row"><button class="btn primary" data-act="ask" data-aid="${sel}" ${S.canWrite?'':'disabled'}>Post</button><button class="btn" data-act="closeAsk">Cancel</button></div></div>`
+  :`<button class="btn primary" data-act="openAsk" style="margin-bottom:12px">+ Ask a question</button>`;
+  h+=`<div style="margin-bottom:8px"><button class="chip ${S.qFilter==='All'?'on':''}" data-act="qFilter" data-a="All">All assignments</button>${as.map(a=>`<button class="chip ${S.qFilter===a.id?'on':''}" data-act="qFilter" data-a="${a.id}">${esc(a.title)}</button>`).join('')}</div>
+  <div style="margin-bottom:10px"><button class="chip ${S.qaSort==='top'?'on':''}" data-act="qaSort" data-s="top">Top voted</button><button class="chip ${S.qaSort==='new'?'on':''}" data-act="qaSort" data-s="new">Newest</button></div>`;
+  if(!list.length)return h+'<div class="empty">No questions yet. Be the first to ask.</div>';
+  return h+list.map(q=>qCard(q,vm,true)).join('');
 }
 
 /* --- insights --- */
@@ -492,6 +519,7 @@ app.addEventListener('input',e=>{const t=e.target,k=t.dataset&&t.dataset.draft;i
 app.addEventListener('change',async e=>{
   const t=e.target;
   if(t.dataset.draft&&t.type==='checkbox')S.draft[t.dataset.draft]=t.checked;
+  if(t.dataset.draft==='qaid'){S.draft.qaid=t.value;S.draft.qtopic='General';render(true);}
   if(t.dataset.file&&t.files&&t.files[0]){
     try{const txt=await readFile(t.files[0]);S.draft[t.dataset.file]=txt;if(t.dataset.file==='stext')S.draft.sfile=t.files[0].name;S.err='';render(true);}
     catch(err){S.err=err.message;render(true);}
@@ -542,6 +570,7 @@ const A={
   closeAsk:()=>{S.qaOpen=false;S.draft.quote='';S.draft.qtext='';render(true);},
   clearQuote:()=>{S.draft.quote='';render(true);},
   qaTopic:el=>{S.qaTopic=el.dataset.t;render(true);},
+  qFilter:el=>{S.qFilter=el.dataset.a;render(true);},
   qaSort:el=>{S.qaSort=el.dataset.s;render(true);},
   openQ:el=>{S.tab[el.dataset.aid]='qa';location.hash='/a/'+el.dataset.aid;},
   answerOpen:el=>{S.answering=el.dataset.id;S.draft.atext='';render(true);},
@@ -647,7 +676,11 @@ const A={
     const id=el.dataset.id;
     if(el.dataset.v==='1'&&!S.answers.some(x=>x.qid===id&&x.staff)){S.answering=id;S.resolveAfter=id;S.draft.atext='';render(true);return;}
     await db.doc('questions/'+id).update({resolved:el.dataset.v==='1'});},
-  async delQ(el){if(!confirm('Delete this question?'))return;await db.doc('questions/'+el.dataset.id).delete();}
+  async delQ(el){
+    if(!S.staff)return;const id=el.dataset.id,n=S.votes.filter(v=>v.qid===id).length;
+    if(!confirm('Delete this question permanently?\n\nIts '+n+' vote'+(n===1?'':'s')+' and any answers will be deleted too. This cannot be undone.'))return;
+    await db.doc('questions/'+id).delete();
+    await Promise.all([...S.votes.filter(v=>v.qid===id).map(v=>db.doc('votes/'+v.id).delete()),...S.answers.filter(x=>x.qid===id).map(x=>db.doc('answers/'+x.id).delete())]);}
 };
 (function init(){
   let acct=null;try{acct=JSON.parse(sessionStorage.getItem('pt_session')||'null');}catch(e){}
