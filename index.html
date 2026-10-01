@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PaperTrail</title>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js" onerror="void 0"></script>
+<style>
+:root{--bg:#f6f7fb;--panel:#fff;--text:#161a23;--muted:#667085;--line:#e4e7ee;--accent:#4f46e5;--accent-t:#fff;--good:#16a34a;--warn:#d97706;--bad:#dc2626;--chip:#eef0f6;
+--h0:#fde68a;--h1:#bfdbfe;--h2:#fbcfe8;--h3:#bbf7d0;--h4:#ddd6fe;--h5:#fed7aa;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1118;--panel:#171b25;--text:#e8ebf2;--muted:#9aa3b5;--line:#2a3040;--accent:#818cf8;--accent-t:#0e1118;--chip:#232938;--h0:#6b5a12;--h1:#1e3a5f;--h2:#6b1d4a;--h3:#14532d;--h4:#3b2f6b;--h5:#7a3b0e}}
+:root[data-theme="dark"]{--bg:#0e1118;--panel:#171b25;--text:#e8ebf2;--muted:#9aa3b5;--line:#2a3040;--accent:#818cf8;--accent-t:#0e1118;--chip:#232938;--h0:#6b5a12;--h1:#1e3a5f;--h2:#6b1d4a;--h3:#14532d;--h4:#3b2f6b;--h5:#7a3b0e}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;min-height:100%}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:10px 14px}
+header h1{font-size:16px;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.role{font-size:11px;padding:3px 8px;border-radius:99px;background:var(--chip);color:var(--muted);white-space:nowrap}
+.role.staff{background:var(--accent);color:var(--accent-t)}
+main{max-width:980px;margin:0 auto;padding:14px 14px 90px}
+nav.top{display:flex;gap:8px;margin-bottom:12px}
+.btn{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--text);padding:9px 14px;border-radius:10px;font:inherit;cursor:pointer}
+.btn.primary{background:var(--accent);color:var(--accent-t);border-color:var(--accent);font-weight:600}
+.btn.danger{color:var(--bad)}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn:disabled{opacity:.5}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.card.click{cursor:pointer}
+.row{display:flex;gap:10px;align-items:center}
+.between{justify-content:space-between}
+.grow{flex:1;min-width:0}
+.muted{color:var(--muted);font-size:13px}
+.chip{display:inline-block;background:var(--chip);color:var(--muted);border-radius:99px;padding:2px 9px;font-size:12px;margin:0 4px 4px 0}
+.chip.on{background:var(--accent);color:var(--accent-t)}
+button.chip{border:0;cursor:pointer;font:inherit;font-size:12px}
+h2{font-size:18px;margin:4px 0 10px}h3{font-size:15px;margin:14px 0 8px}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+input[type=text],input[type=datetime-local],select,textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text);font:inherit}
+textarea{min-height:120px;resize:vertical}
+.tabs{display:flex;gap:6px;margin:6px 0 14px;overflow-x:auto}
+.tabs .btn{white-space:nowrap}
+.tabs .btn.on{background:var(--accent);color:var(--accent-t);border-color:var(--accent)}
+.score{display:inline-block;min-width:52px;text-align:center;padding:3px 9px;border-radius:8px;font-weight:700;font-size:13px;color:#fff}
+.score.good{background:var(--good)}.score.warn{background:var(--warn)}.score.bad{background:var(--bad)}
+.doc{white-space:pre-wrap;word-wrap:break-word;line-height:1.7;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:14px;font-family:Georgia,"Times New Roman",serif;max-height:70vh;overflow:auto;-webkit-user-select:text;user-select:text}
+.doc span[data-src]{border-radius:3px;cursor:pointer}
+.h0{background:var(--h0)}.h1{background:var(--h1)}.h2{background:var(--h2)}.h3{background:var(--h3)}.h4{background:var(--h4)}.h5{background:var(--h5)}
+.hascm{border-bottom:2px solid var(--accent);cursor:pointer}
+.ring{display:flex;align-items:center;gap:16px}
+.ring svg{flex:none}
+.src{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
+.sw{width:14px;height:14px;border-radius:4px;flex:none}
+.q{display:flex;gap:12px}
+.vote{flex:none;width:48px;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:6px 0;text-align:center;cursor:pointer;color:var(--text);font:inherit}
+.vote.on{background:var(--accent);color:var(--accent-t);border-color:var(--accent)}
+.vote b{display:block;font-size:16px}
+blockquote{margin:6px 0;padding:6px 10px;border-left:3px solid var(--accent);background:var(--bg);color:var(--muted);font-size:13px;border-radius:0 8px 8px 0;white-space:pre-wrap}
+.ans{margin:8px 0 0 0;padding:8px 10px;background:var(--bg);border-radius:10px;font-size:14px}
+.bar{height:10px;border-radius:6px;background:var(--chip);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent)}
+.flash{animation:fl 1.4s}
+@keyframes fl{0%,60%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:0 0 0 0 transparent}}
+#selbar{position:fixed;left:0;right:0;bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;z-index:20}
+#selbar[hidden]{display:none}
+#selbar button{box-shadow:0 6px 24px rgba(0,0,0,.3)}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:30;display:flex;align-items:flex-end;justify-content:center}
+.sheet>div{background:var(--panel);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px))}
+.notice{background:var(--chip);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--muted);margin-bottom:12px}
+.err{color:var(--bad);font-size:13px;margin-top:6px}
+.empty{text-align:center;color:var(--muted);padding:30px 10px}
+</style>
+</head>
+<body>
+<header><button class="btn sm" id="back" hidden>←</button><h1 id="ttl">PaperTrail</h1><button class="btn sm" id="viewas" hidden></button><span class="role" id="role"></span></header>
+<main id="app"><div class="empty">Loading…</div></main>
+<div id="selbar" hidden><button class="btn primary" id="selbtn" onpointerdown="event.preventDefault()"></button></div>
+<script>
+"use strict";
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rid=()=>Math.random().toString(36).slice(2,10);
+const fmt=t=>t?new Date(t).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'';
+const band=p=>p<15?'good':p<40?'warn':'bad';
+const ago=t=>{const s=(Date.now()-t)/1000;if(s<60)return 'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago';};
+
+/* ---------- state ---------- */
+let db=null,user=null;
+const S={assignments:[],index:[],questions:[],answers:[],votes:[],mySubs:{},meta:{},myVotes:{},myQs:{},names:{},refs:{},me:{id:null},staff:false,realStaff:false,owner:false,canWrite:true,ready:false,
+ draft:{},tab:{},qaSort:'top',qaTopic:'All',qaOpen:false,answering:null,sub:undefined,subKey:'',fb:[],sheet:null,busy:'',err:'',pending:false,unsubFb:null};
+const getA=id=>S.assignments.find(a=>a.id===id);
+const nm=u=>u===S.me.id?'You':(S.names[u]||'Someone');
+
+/* ---------- similarity engine ---------- */
+const K=5,MINRUN=8;
+function tokenize(t){const re=/[\p{L}\p{N}']+/gu,out=[];let m;while((m=re.exec(t))){out.push({w:m[0].toLowerCase().replace(/'/g,''),s:m.index,e:m.index+m[0].length});}return out;}
+function fnv(str){let h=0x811c9dc5;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0;}return h;}
+function shingles(toks){const o=[];for(let i=0;i+K<=toks.length;i++)o.push(fnv(toks.slice(i,i+K).map(t=>t.w).join(' ')).toString(36));return o;}
+function analyze(text,sources){
+  const toks=tokenize(text),sh=shingles(toks),map=new Map();
+  sources.forEach((s,i)=>s.set.forEach(h=>{if(!map.has(h))map.set(h,i);}));
+  const cov=new Array(toks.length).fill(-1);
+  sh.forEach((h,i)=>{const si=map.get(h);if(si!==undefined)for(let j=i;j<i+K;j++)if(cov[j]===-1)cov[j]=si;});
+  const raw=[];let i=0;
+  while(i<toks.length){if(cov[i]===-1){i++;continue;}let j=i;while(j<toks.length&&cov[j]===cov[i])j++;if(j-i>=MINRUN)raw.push([toks[i].s,toks[j-1].e,cov[i],j-i]);i=j;}
+  const used=[...new Set(raw.map(r=>r[2]))],words={};
+  raw.forEach(r=>words[r[2]]=(words[r[2]]||0)+r[3]);
+  const total=raw.reduce((a,r)=>a+r[3],0),n=toks.length||1;
+  const srcs=used.map(u=>({kind:sources[u].kind,fp:sources[u].fp||null,label:sources[u].label,pct:Math.round(words[u]/n*1000)/10})).sort((a,b)=>b.pct-a.pct);
+    const idxOf=u=>srcs.findIndex(s=>s.kind===sources[u].kind&&s.fp===(sources[u].fp||null)&&s.label===sources[u].label);
+  return{words:toks.length,score:Math.round(total/n*1000)/10,matches:raw.map(r=>[r[0],r[1],idxOf(r[2])]),sources:srcs,hashes:sh};
+}
+async function loadSources(aid,excludeFp){
+  const out=[];
+  const f=await db.collection('fp').where('aid','==',aid).get();
+  f.docs.forEach(d=>{const x=d.data();if(d.id===excludeFp)return;out.push({kind:'peer',fp:d.id,label:'Peer submission',set:new Set((x.h||'').split(' ').filter(Boolean))});});
+  const r=await db.collection(`assignments/${aid}/refs`).get();
+  r.docs.forEach(d=>{const x=d.data();out.push({kind:'ref',label:x.label||'Reference source',set:new Set(shingles(tokenize(x.text||'')))});});
+  return out;
+}
+
+/* ---------- file reading ---------- */
+async function readFile(file){
+  const n=file.name.toLowerCase();
+  if(n.endsWith('.docx')){if(!window.mammoth)throw new Error('Word reader did not load — paste the text instead.');return (await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()})).value;}
+  if(/\.(txt|md|markdown|csv)$/.test(n)||(file.type||'').startsWith('text/'))return await file.text();
+  throw new Error('Supported files: .txt, .md, .docx (or paste the text).');
+}
+
+/* ---------- init ---------- */
+
+/* ---------- demo backend: runs entirely in this browser (no server, no external services) ----------
+   Data is kept in localStorage and shared by every account that signs in on this browser.
+   The same privacy rules a real server would enforce are applied here when reading and writing. */
+const ACCTS=[
+ {id:'u_rivera',email:'prof.rivera@uni.edu',name:'Prof. Rivera',role:'teacher'},
+ {id:'u_chen',email:'ta.chen@uni.edu',name:'Chen (TA)',role:'ta'},
+ {id:'u_alex',email:'alex.morgan@student.uni.edu',name:'Alex Morgan',role:'student'},
+ {id:'u_sam',email:'sam.okafor@student.uni.edu',name:'Sam Okafor',role:'student'},
+ {id:'u_jo',email:'jo.lee@student.uni.edu',name:'Jo Lee',role:'student'}];
+const reg=()=>{try{return JSON.parse(localStorage.getItem('pt_accts')||'{}');}catch(e){return{};}};
+function rememberAcct(a){const r=reg();r[a.id]={name:a.name,email:a.email,role:a.role};localStorage.setItem('pt_accts',JSON.stringify(r));}
+let STORE={};try{STORE=JSON.parse(localStorage.getItem('pt_db')||'{}');}catch(e){}
+const LISTEN=new Set(),poke=()=>LISTEN.forEach(f=>setTimeout(f,0));
+function persist(){try{localStorage.setItem('pt_db',JSON.stringify(STORE));}catch(e){throw{code:'quota_exceeded',message:'Browser storage is full'};}poke();}
+window.addEventListener('storage',e=>{if(e.key==='pt_db'){try{STORE=JSON.parse(e.newValue||'{}');}catch(x){STORE={};}poke();}});
+const clone=o=>JSON.parse(JSON.stringify(o));
+function merge(t,s){for(const k in s){if(s[k]&&typeof s[k]==='object'&&!Array.isArray(s[k])&&t[k]&&typeof t[k]==='object'&&!Array.isArray(t[k]))merge(t[k],s[k]);else t[k]=s[k];}return t;}
+function makeDB(me){
+  const staff=me.role!=='student';
+  const canRead=p=>{const s=p.split('/');if(s[0]==='submissions'||s[0]==='feedback')return staff||s[1]===me.id;if(s[0]==='data'&&s[1]==='users')return s[2]===me.id;return true;};
+  const canWrite=p=>{const s=p.split('/');if(s[0]==='assignments'||s[0]==='feedback')return staff;if(s[0]==='submissions')return staff||s[1]===me.id;if(s[0]==='data'&&s[1]==='users')return s[2]===me.id;return true;};
+  const deny=()=>Promise.reject({code:'invalid_argument',message:'Not permitted for your role'});
+  const snap=p=>{const ex=(p in STORE)&&canRead(p);return{id:p.split('/').pop(),exists:ex,data:()=>ex?clone(STORE[p]):undefined,metadata:{fromCache:false,hasPendingWrites:false}};};
+  const cmp={'==':(a,b)=>a===b,'!=':(a,b)=>a!==b,'<':(a,b)=>a<b,'<=':(a,b)=>a<=b,'>':(a,b)=>a>b,'>=':(a,b)=>a>=b,'in':(a,b)=>b.includes(a),'not-in':(a,b)=>!b.includes(a),'array-contains':(a,b)=>Array.isArray(a)&&a.includes(b)};
+  function query(path,f,ord,lim){
+    const run=()=>{let docs=Object.keys(STORE).filter(k=>k.startsWith(path+'/')&&!k.slice(path.length+1).includes('/')&&canRead(k)).map(snap);
+      f.forEach(([fld,op,v])=>{docs=docs.filter(d=>cmp[op](d.data()[fld],v));});
+      if(ord){const fl=ord[0],dir=ord[1];docs.sort((a,b)=>{const x=a.data()[fl],y=b.data()[fl];return(x>y?1:x<y?-1:0)*(dir==='desc'?-1:1);});}
+      if(lim)docs=docs.slice(0,lim);
+      return{docs,size:docs.length,empty:!docs.length,metadata:{fromCache:false,hasPendingWrites:false}};};
+    const q={path,where:(a,b,c)=>query(path,[...f,[a,b,c]],ord,lim),orderBy:(a,d)=>query(path,f,[a,d||'asc'],lim),limit:n=>query(path,f,ord,n),
+      get:async()=>run(),
+      onSnapshot(next){const L=()=>next(run());LISTEN.add(L);setTimeout(L,0);return()=>LISTEN.delete(L);},
+      doc:id=>docRef(path+'/'+(id||Math.random().toString(36).slice(2,12))),
+      add:async d=>{const r=q.doc();await r.set(d);return r;}};
+    return q;}
+  function docRef(p){return{id:p.split('/').pop(),path:p,get:async()=>snap(p),
+    set:async d=>{if(!canWrite(p))return deny();STORE[p]=clone(d);persist();},
+    update:async d=>{if(!canWrite(p)||!(p in STORE))return deny();merge(STORE[p],clone(d));persist();},
+    delete:async()=>{if(!canWrite(p))return deny();delete STORE[p];persist();},
+    onSnapshot(next){const L=()=>next(snap(p));LISTEN.add(L);setTimeout(L,0);return()=>LISTEN.delete(L);},
+    collection:c=>query(p+'/'+c,[],null,null)};}
+  return{doc:docRef,collection:p=>query(p,[],null,null)};
+}
+function makeUser(me){return{me:async()=>({id:me.id,name:me.name,email:me.email}),canEdit:async()=>me.role!=='student',isOwner:async()=>me.role==='teacher',can:async()=>true,
+  profiles:async ids=>{const r=reg(),o={};ids.forEach(i=>{o[i]={name:(r[i]||{}).name||''};});return o;}};}
+function loginWith(email){
+  email=(email||'').trim().toLowerCase();
+  const m=email.match(/^([a-z0-9._-]+)@(student\.)?uni\.edu$/);
+  if(!m)return 'Please sign in with your university email (name@student.uni.edu, or name@uni.edu for staff).';
+  const local=m[1],staff=!m[2],known=ACCTS.find(a=>a.email===email);
+  const acct=known||{id:'u_'+local.replace(/[^a-z0-9]/g,''),email,name:local.split(/[._-]/).filter(Boolean).map(w=>w[0].toUpperCase()+w.slice(1)).join(' '),role:staff?(local.startsWith('prof')?'teacher':'ta'):'student'};
+  rememberAcct(acct);sessionStorage.setItem('pt_session',JSON.stringify(acct));location.reload();return '';
+}
+
+
+async function boot(acct){
+  db=makeDB(acct);user=makeUser(acct);
+  try{
+    const me=await user.me();S.me=me;S.staff=await user.canEdit();S.realStaff=S.staff;S.owner=await user.isOwner();
+    const cw=await user.can('data.write');S.canWrite=cw!==false;
+  }catch(e){}
+  const sub=(path,key,cb)=>db.collection(path).onSnapshot(s=>{S[key]=s.docs.map(d=>({id:d.id,...d.data()}));if(cb)cb();onData();},e=>console.warn(path,e));
+  sub('assignments','assignments');sub('questions','questions');sub('answers','answers');sub('votes','votes');
+  if(S.staff)db.collection('submissions').onSnapshot(s=>{S.index=[];s.docs.forEach(d=>{const x=d.data();Object.entries(x.a||{}).forEach(([aid,at])=>S.index.push({aid,uid:x.uid||d.id,at}));});onData();},e=>console.warn(e));
+  if(S.me.id)db.collection(`data/users/${S.me.id}`).onSnapshot(s=>{S.myVotes={};S.myQs={};s.docs.forEach(d=>{const x=d.data();if(d.id.startsWith('v-'))S.myVotes[x.qid]=x.vid;else if(d.id.startsWith('q-'))S.myQs[d.id.slice(2)]=1;});onData();},e=>console.warn(e));
+  if(S.me.id){db.collection(`submissions/${S.me.id}/a`).onSnapshot(s=>{S.mySubs={};s.docs.forEach(d=>S.mySubs[d.data().aid]=d.data());onData();},e=>console.warn(e));}
+  S.ready=true;onRoute();
+}
+let nameT;
+function onData(){
+  clearTimeout(nameT);nameT=setTimeout(ensureNames,200);
+  if(S.staff)S.index.forEach(loadMeta);
+  render();
+}
+const metaBusy={};
+async function loadMeta(r){
+  const k=r.aid+'-'+r.uid,m=S.meta[k];
+  if((m&&m.at===r.at)||metaBusy[k]===r.at)return;
+  metaBusy[k]=r.at;
+  try{const d=await db.doc(`submissions/${r.uid}/a/${r.aid}`).get();if(d.exists){const x=d.data();S.meta[k]={uid:r.uid,fpId:x.fpId,at:x.at,score:x.score,words:x.words,title:x.title,version:x.version,late:x.late};render();}}catch(e){}
+}
+async function ensureNames(){
+  if(!user)return;
+  const ids=new Set();
+  S.index.forEach(r=>ids.add(r.uid));S.questions.forEach(q=>ids.add(q.by));S.answers.forEach(a=>ids.add(a.by));S.fb.forEach(c=>ids.add(c.by));
+  if(S.sub&&S.sub.uid)ids.add(S.sub.uid);
+  const need=[...ids].filter(i=>i&&!(i in S.names)&&i!==S.me.id);
+  if(!need.length)return;
+  try{const ps=await user.profiles(need);need.forEach(i=>S.names[i]=(ps[i]&&ps[i].name)||'');render();}catch(e){need.forEach(i=>S.names[i]='');}
+}
+
+/* ---------- routing ---------- */
+const route=()=>(location.hash.slice(1)||'/').split('/').filter(Boolean);
+function onRoute(){
+  const p=route();
+  if(S.unsubFb){S.unsubFb();S.unsubFb=null;S.fb=[];}
+  S.sheet=null;S.err='';
+  if(p[0]==='a'&&p[1]){loadRefs(p[1]);}
+  if(p[0]==='s'&&p[1]&&p[2]){openReport(p[1],p[2]);}
+  render(true);window.scrollTo(0,0);
+}
+window.addEventListener('hashchange',onRoute);
+async function loadRefs(aid){try{const r=await db.collection(`assignments/${aid}/refs`).get();S.refs[aid]=r.docs.map(d=>({id:d.id,...d.data()}));render();}catch(e){}}
+async function openReport(aid,uid){
+  S.sub=undefined;S.subKey=aid+'/'+uid;
+  try{
+    const d=await db.doc(`submissions/${uid}/a/${aid}`).get();
+    if(S.subKey!==aid+'/'+uid)return;
+    S.sub=d.exists?d.data():false;
+    S.unsubFb=db.collection(`feedback/${uid}/c`).where('aid','==',aid).onSnapshot(s=>{S.fb=s.docs.map(x=>({id:x.id,...x.data()})).sort((a,b)=>a.start-b.start);render();ensureNames();},e=>console.warn(e));
+  }catch(e){S.sub=false;}
+  render(true);ensureNames();
+}
+
+/* ---------- render ---------- */
+const app=$('#app');
+function typing(){const a=document.activeElement;return a&&app.contains(a)&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName);}
+function render(force){
+  if(!force&&typing()){S.pending=true;return;}
+  S.pending=false;
+  const y=window.scrollY;
+  const roleEl=$('#role');
+  roleEl.textContent=S.login?'':((S.meName||'').split(' ')[0]+' · '+({teacher:'Teacher',ta:'TA',student:'Student'}[S.role]||''));roleEl.className='role'+(S.staff?' staff':'');
+  const p=route();let html='',title='PaperTrail',back=false;
+  if(!S.ready){html='<div class="empty">Loading…</div>';}
+  else if(S.login){html=vLogin();}
+  else if(false){html='<div class="card"><h2>Sign in to use PaperTrail</h2><p class="muted">This app stores assignments, submissions and questions in a shared database, which isn\'t available in this view. Open the published link while signed in.</p></div>';}
+  else{
+    const banner=S.canWrite?'':'<div class="notice">You have view-only access, so you can\'t submit or post. Ask the teacher for contributor access.</div>';
+    if(p[0]==='a'&&p[1]){const a=getA(p[1]);title=a?a.title:'Assignment';back=true;html=banner+(a?vAssignment(a):'<div class="empty">Assignment not found.</div>');}
+    else if(p[0]==='s'&&p[1]&&p[2]){title='Similarity report';back=true;html=vReport(p[1],p[2]);}
+    else if(p[0]==='new'){title='New assignment';back=true;html=vNew();}
+    else if(p[0]==='insights'){title='Confusion insights';html=vNav('insights')+(S.staff?vInsights():'<div class="empty">Staff only.</div>');}
+    else{html=banner+vNav('list')+vList();}
+  }
+  const va=$('#viewas');va.hidden=!!S.login||!S.me.id;va.textContent='Sign out';
+  $('#ttl').textContent=title;$('#back').hidden=!back;
+  if(S.sheet)html+=vSheet();
+  app.innerHTML=html;
+  if(!force)window.scrollTo(0,y);
+}
+$('#viewas').onclick=()=>{sessionStorage.removeItem('pt_session');location.hash='';location.reload();};
+$('#back').onclick=()=>{const p=route();location.hash=(p[0]==='s')?'/a/'+p[1]:'/';};
+app.addEventListener('keydown',e=>{if(S.login&&e.key==='Enter'&&e.target.id==='lemail'){e.preventDefault();A.login();}});
+app.addEventListener('focusout',()=>setTimeout(()=>{if(S.pending&&!typing())render();},50));
+const vNav=cur=>`<nav class="top"><button class="btn ${cur==='list'?'primary':''}" data-act="go" data-to="/">Assignments</button>${S.staff?`<button class="btn ${cur==='insights'?'primary':''}" data-act="go" data-to="/insights">Insights</button>`:''}</nav>`;
+
+function vLogin(){
+  return `<div class="card" style="max-width:440px;margin:24px auto"><h2 style="margin-top:0">📝 PaperTrail</h2><div class="muted">Sign in with your university email</div>
+  <label>University email</label><input type="text" id="lemail" data-draft="lemail" inputmode="email" autocapitalize="off" placeholder="name@student.uni.edu" value="${esc(S.draft.lemail||'')}">
+  ${S.err?`<div class="err">${esc(S.err)}</div>`:''}
+  <button class="btn primary" data-act="login" style="margin-top:12px;width:100%">Sign in</button>
+  <div class="notice" style="margin-top:16px">Prototype sign-in. In production this goes through the university's single sign-on (Blackboard LTI), and teacher / TA / student roles come from the course roster. Quick demo accounts:</div>
+  ${ACCTS.map(a=>`<button class="btn sm" style="margin:0 6px 6px 0" data-act="loginAs" data-email="${a.email}">${esc(a.name)} · ${a.role}</button>`).join('')}
+  <div style="margin-top:14px"><button class="btn sm danger" data-act="resetDemo">Reset demo data</button></div></div>`;
+}
+/* --- list --- */
+function vList(){
+  const as=[...S.assignments].sort((a,b)=>(a.due||9e15)-(b.due||9e15));
+  let h=S.staff?'<div style="margin-bottom:12px"><button class="btn primary" data-act="go" data-to="/new">+ New assignment</button> <button class="btn" data-act="sample">Load sample + demo questions</button></div>':'';
+  if(!as.length)return h+'<div class="empty">No assignments yet.'+(S.staff?'':' Your teacher will post them here.')+'</div>';
+  as.forEach(a=>{
+    const my=S.mySubs[a.id],subs=S.index.filter(r=>r.aid===a.id).length,qs=S.questions.filter(q=>q.aid===a.id).length;
+    h+=`<div class="card click" data-act="go" data-to="/a/${a.id}"><div class="row between"><b class="grow">${esc(a.title)}</b>${!S.staff&&my?`<span class="score ${band(my.score)}">${my.score}%</span>`:''}</div>
+    <div class="muted">${a.unit?esc(a.unit)+' · ':''}${a.due?'Due '+fmt(a.due):'No due date'}</div>
+    <div class="muted" style="margin-top:4px">${S.staff?subs+' submission'+(subs===1?'':'s'):(my?'Submitted '+fmt(my.at):'Not submitted')} · ${qs} question${qs===1?'':'s'}</div></div>`;
+  });
+  return h;
+}
+
+/* --- new assignment --- */
+function vNew(){
+  if(!S.staff)return '<div class="empty">Staff only.</div>';
+  const d=S.draft;
+  return `<div class="card"><label>Title</label><input type="text" data-draft="ntitle" value="${esc(d.ntitle||'')}">
+  <label>Unit / module</label><input type="text" data-draft="nunit" placeholder="e.g. Unit 3: Cell Respiration" value="${esc(d.nunit||'')}">
+  <label>Due</label><input type="datetime-local" data-draft="ndue" value="${esc(d.ndue||'')}">
+  <label>Topics students can tag questions with (comma-separated)</label><input type="text" data-draft="ntopics" placeholder="Thesis, Citations, Methodology" value="${esc(d.ntopics||'')}">
+  <label>Assignment document (paste, or upload .txt / .md / .docx)</label><textarea data-draft="nbrief" style="min-height:180px">${esc(d.nbrief||'')}</textarea>
+  <input type="file" data-file="nbrief" accept=".txt,.md,.docx" style="margin-top:8px">
+  ${S.err?`<div class="err">${esc(S.err)}</div>`:''}
+  <div style="margin-top:12px"><button class="btn primary" data-act="createA" ${S.busy?'disabled':''}>${S.busy||'Create assignment'}</button></div></div>`;
+}
+
+/* --- assignment --- */
+function vAssignment(a){
+  const tab=S.tab[a.id]||'brief';
+  const tabs=[['brief','Brief'],[S.staff?'subs':'submit',S.staff?'Submissions':'Submit'],['qa','Q&A']];
+  let h=`<div class="tabs">${tabs.map(t=>`<button class="btn ${tab===t[0]?'on':''}" data-act="tab" data-aid="${a.id}" data-tab="${t[0]}">${t[1]}</button>`).join('')}</div>`;
+  if(tab==='brief')h+=vBrief(a);else if(tab==='submit')h+=vSubmit(a);else if(tab==='subs')h+=vSubs(a);else h+=vQA(a);
+  return h;
+}
+function vBrief(a){
+  let h=`<div class="card"><div class="muted">${a.unit?esc(a.unit)+' · ':''}${a.due?'Due '+fmt(a.due):'No due date'}</div>
+  ${(a.topics||[]).length?'<div style="margin-top:8px">'+a.topics.map(t=>`<span class="chip">${esc(t)}</span>`).join('')+'</div>':''}</div>
+  <div class="card"><div class="muted" style="margin-bottom:8px">Select any passage to ask a question about it.</div>
+  <div class="doc" data-selectable="brief">${esc(a.brief||'(No document text.)')}</div></div>`;
+  if(S.staff){
+    const refs=S.refs[a.id]||[];
+    h+=`<div class="card"><h3 style="margin-top:0">Reference sources for similarity checks</h3><div class="muted">Submissions are compared against these and against other students' submissions to this assignment.</div>
+    ${refs.map(r=>`<div class="src"><span class="grow">${esc(r.label)} <span class="muted">· ${tokenize(r.text||'').length} words</span></span><button class="btn sm danger" data-act="delRef" data-aid="${a.id}" data-id="${r.id}">Remove</button></div>`).join('')}
+    <label>Label</label><input type="text" data-draft="rlabel" value="${esc(S.draft.rlabel||'')}" placeholder="e.g. Course textbook ch. 4">
+    <label>Text (paste, or upload)</label><textarea data-draft="rtext">${esc(S.draft.rtext||'')}</textarea>
+    <input type="file" data-file="rtext" accept=".txt,.md,.docx" style="margin-top:8px">
+    ${S.err?`<div class="err">${esc(S.err)}</div>`:''}
+    <div style="margin-top:10px"><button class="btn primary" data-act="addRef" data-aid="${a.id}">Add source</button></div></div>
+    ${S.owner?`<button class="btn danger" data-act="delA" data-aid="${a.id}">Delete assignment</button>`:''}`;
+  }
+  return h;
+}
+function vSubmit(a){
+  const my=S.mySubs[a.id],d=S.draft;
+  let h='';
+  if(my)h+=`<div class="card click" data-act="go" data-to="/s/${a.id}/${S.me.id}"><div class="row"><span class="score ${band(my.score)}">${my.score}%</span><div class="grow"><b>${esc(my.title||'Your submission')}</b><div class="muted">v${my.version||1} · ${fmt(my.at)}${my.late?' · late':''}</div></div><span>›</span></div><div class="muted" style="margin-top:6px">Tap to see the similarity report and teacher comments.</div></div>`;
+  h+=`<div class="card"><h3 style="margin-top:0">${my?'Resubmit':'Submit your work'}</h3>
+  <label>Title</label><input type="text" data-draft="stitle" value="${esc(d.stitle||'')}" placeholder="Optional">
+  <label>Upload (.txt, .md, .docx) or paste below</label><input type="file" data-file="stext" accept=".txt,.md,.docx">
+  ${d.sfile?`<div class="muted" style="margin-top:4px">Loaded: ${esc(d.sfile)}</div>`:''}
+  <textarea data-draft="stext" style="margin-top:8px;min-height:200px" placeholder="Paste your paper here">${esc(d.stext||'')}</textarea>
+  ${S.err?`<div class="err">${esc(S.err)}</div>`:''}
+  <div style="margin-top:12px"><button class="btn primary" data-act="submit" data-aid="${a.id}" ${(S.busy||!S.canWrite)?'disabled':''}>${S.busy||'Submit & check similarity'}</button></div></div>`;
+  return h;
+}
+function vSubs(a){
+  const all=S.index.filter(r=>r.aid===a.id);
+  if(!all.length)return '<div class="empty">No submissions yet.</div>';
+  const rows=all.map(r=>({...r,...(S.meta[r.aid+'-'+r.uid]||{})})).filter(r=>r.score!=null).sort((x,y)=>y.score-x.score);
+  if(!rows.length)return '<div class="empty">Loading submissions…</div>';
+  const avg=Math.round(rows.reduce((s,r)=>s+r.score,0)/rows.length*10)/10,hi=rows.filter(r=>r.score>=40).length;
+  return `<div class="card row between"><div><b>${rows.length}</b><div class="muted">submitted</div></div><div><b>${avg}%</b><div class="muted">avg similarity</div></div><div><b>${hi}</b><div class="muted">≥ 40%</div></div></div>`+
+  rows.map(r=>`<div class="card click" data-act="go" data-to="/s/${a.id}/${r.uid}"><div class="row"><span class="score ${band(r.score)}">${r.score}%</span><div class="grow"><b>${esc(nm(r.uid))}</b><div class="muted">${esc(r.title||'')} · ${r.words} words · v${r.version||1} · ${fmt(r.at)}${r.late?' · late':''}</div></div><span>›</span></div></div>`).join('');
+}
+
+/* --- Q&A --- */
+function vQA(a){
+  const topics=['General',...(a.topics||[])];
+  const qs=S.questions.filter(q=>q.aid===a.id);
+  const vm={};S.votes.forEach(v=>{(vm[v.qid]=vm[v.qid]||{n:0,mine:false}).n++;});Object.keys(S.myVotes).forEach(q=>{(vm[q]=vm[q]||{n:0,mine:false}).mine=true;});
+  let list=qs.filter(q=>S.qaTopic==='All'||q.topic===S.qaTopic);
+  list.sort(S.qaSort==='top'?((x,y)=>((vm[y.id]||{n:0}).n-(vm[x.id]||{n:0}).n)||y.at-x.at):((x,y)=>y.at-x.at));
+  const d=S.draft;
+  let h=`<div class="notice">🔒 ${S.staff?'Students\' questions and votes are anonymous to you too: you see totals, never names.':'Your questions and votes are anonymous by default. Teachers see totals, never names.'}</div>`;
+  if(S.staff&&qs.length){
+    const tot={};qs.forEach(q=>tot[q.topic]=(tot[q.topic]||0)+((vm[q.id]||{n:0}).n));
+    const top=Object.entries(tot).sort((x,y)=>y[1]-x[1])[0];
+    if(top)h+=`<div class="notice">Most votes on this assignment: <b>${esc(top[0])}</b> (${top[1]}). See the Insights tab for all units.</div>`;
+  }
+  h+=S.qaOpen||d.quote?`<div class="card"><h3 style="margin-top:0">Ask a question</h3>
+  ${d.quote?`<blockquote>${esc(d.quote)}</blockquote><button class="btn sm" data-act="clearQuote">Remove quoted passage</button>`:'<div class="muted">Tip: select text in the Brief tab to attach a passage.</div>'}
+  <label>Topic</label><select data-draft="qtopic">${topics.map(t=>`<option ${((d.qtopic||'General')===t)?'selected':''}>${esc(t)}</option>`).join('')}</select>
+  <label>Your question</label><textarea data-draft="qtext" style="min-height:90px">${esc(d.qtext||'')}</textarea>
+  <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-draft="qanon" ${d.qanon!==false?'checked':''}> Post anonymously (no one, including teachers, can see who asked)</label>
+  ${S.err?`<div class="err">${esc(S.err)}</div>`:''}
+  <div style="margin-top:10px" class="row"><button class="btn primary" data-act="ask" data-aid="${a.id}" ${S.canWrite?'':'disabled'}>Post</button><button class="btn" data-act="closeAsk">Cancel</button></div></div>`
+  :`<button class="btn primary" data-act="openAsk" style="margin-bottom:12px">+ Ask a question</button>`;
+  h+=`<div style="margin-bottom:8px">${['All',...topics].map(t=>`<button class="chip ${S.qaTopic===t?'on':''}" data-act="qaTopic" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div>
+  <div style="margin-bottom:10px"><button class="chip ${S.qaSort==='top'?'on':''}" data-act="qaSort" data-s="top">Top voted</button><button class="chip ${S.qaSort==='new'?'on':''}" data-act="qaSort" data-s="new">Newest</button></div>`;
+  if(!list.length)return h+'<div class="empty">No questions yet. Be the first to ask.</div>';
+  list.forEach(q=>{
+    const v=vm[q.id]||{n:0,mine:false},ans=S.answers.filter(x=>x.qid===q.id).sort((x,y)=>(y.staff?1:0)-(x.staff?1:0)||x.at-y.at),hasStaff=ans.some(x=>x.staff);
+    const who=q.anon?'Anonymous':esc(nm(q.by));
+    h+=`<div class="card q"><button class="vote ${v.mine?'on':''}" data-act="vote" data-id="${q.id}" data-aid="${a.id}" data-topic="${esc(q.topic)}" ${S.canWrite?'':'disabled'}>▲<b>${v.n}</b></button>
+    <div class="grow"><div><span class="chip">${esc(q.topic)}</span>${q.resolved?(hasStaff?'<span class="chip" style="background:var(--good);color:#fff">Resolved</span>':'<span class="chip" style="background:var(--warn);color:#fff">Marked resolved, answer pending</span>'):(hasStaff?'<span class="chip" style="background:var(--good);color:#fff">Answered by staff</span>':'')}</div>
+    ${q.quote?`<blockquote>${esc(q.quote)}</blockquote>`:''}
+    <div style="white-space:pre-wrap">${esc(q.text)}</div><div class="muted">${who} · ${ago(q.at)}</div>
+    ${ans.map(x=>`<div class="ans"${x.staff?' style="border-left:3px solid var(--good)"':''}><div class="muted">${x.staff?'✓ <b>Staff answer</b> · '+esc(nm(x.by)):'A classmate'} · ${ago(x.at)}</div><div style="white-space:pre-wrap">${esc(x.text)}</div></div>`).join('')}
+    ${S.answering===q.id?`${S.resolveAfter===q.id?'<div class="muted" style="margin-top:8px">Write the answer students will see. The question is marked resolved when you post it.</div>':''}<textarea data-draft="atext" style="margin-top:8px;min-height:70px">${esc(d.atext||'')}</textarea><div class="row" style="margin-top:6px"><button class="btn primary sm" data-act="answer" data-id="${q.id}" data-aid="${a.id}">${S.resolveAfter===q.id?'Post answer & resolve':'Reply'}</button><button class="btn sm" data-act="answerCancel">Cancel</button></div>`:''}
+    <div class="row" style="margin-top:8px;flex-wrap:wrap"><button class="btn sm" data-act="answerOpen" data-id="${q.id}">Reply</button>
+    ${S.staff?`<button class="btn sm" data-act="resolve" data-id="${q.id}" data-v="${q.resolved?0:1}">${q.resolved?'Reopen':(hasStaff?'Mark resolved':'Answer & resolve')}</button>`:''}
+    ${(S.staff||q.by===S.me.id||S.myQs[q.id])?`<button class="btn sm danger" data-act="delQ" data-id="${q.id}">Delete</button>`:''}</div></div></div>`;
+  });
+  return h;
+}
+
+/* --- insights --- */
+function vInsights(){
+  const vm={};S.votes.forEach(v=>vm[v.qid]=(vm[v.qid]||0)+1);
+  if(!S.questions.length)return '<div class="empty">No questions yet. Once students start asking and voting, you\'ll see which units and topics are causing the most confusion here.</div>';
+  const units={};
+  S.questions.forEach(q=>{const a=getA(q.aid);if(!a)return;const u=a.unit||'No unit';const U=units[u]=units[u]||{votes:0,topics:{},hot:{}};
+    const n=vm[q.id]||0;U.votes+=n;const T=U.topics[q.topic]=U.topics[q.topic]||{votes:0,q:0,open:0,list:[]};T.votes+=n;T.q++;if(!q.resolved){T.open++;}T.list.push({q,n,a});
+    if(q.quote){const k=a.id+'|'+q.quote;const H=U.hot[k]=U.hot[k]||{quote:q.quote,aid:a.id,title:a.title,n:0};H.n+=n;}});
+  let h='<div class="muted" style="margin-bottom:10px">Votes show how many students share each question. Higher bars = more confusion.</div>';
+  Object.entries(units).sort((x,y)=>y[1].votes-x[1].votes).forEach(([u,U])=>{
+    const max=Math.max(1,...Object.values(U.topics).map(t=>t.votes));
+    h+=`<div class="card"><div class="row between"><b>${esc(u)}</b><span class="muted">${U.votes} votes</span></div>`;
+    Object.entries(U.topics).sort((x,y)=>y[1].votes-x[1].votes).forEach(([t,T])=>{
+      h+=`<div style="margin-top:12px"><div class="row between"><span>${esc(t)}</span><span class="muted">${T.votes} votes · ${T.q} Q · ${T.open} open</span></div><div class="bar"><i style="width:${T.votes/max*100}%"></i></div>`;
+      T.list.filter(x=>!x.q.resolved).sort((x,y)=>y.n-x.n).slice(0,2).forEach(x=>{h+=`<div class="muted card click" style="padding:8px 10px;margin:6px 0 0" data-act="openQ" data-aid="${x.a.id}">▲ ${x.n} · ${esc(x.q.text.slice(0,110))}${x.q.text.length>110?'…':''}</div>`;});
+      h+='</div>';
+    });
+    const hot=Object.values(U.hot).filter(x=>x.n>0).sort((x,y)=>y.n-x.n).slice(0,3);
+    if(hot.length){h+='<h3>Most-questioned passages</h3>';hot.forEach(x=>h+=`<blockquote>${esc(x.quote.slice(0,180))}</blockquote><div class="muted" style="margin-bottom:6px">▲ ${x.n} · ${esc(x.title)}</div>`);}
+    h+='</div>';
+  });
+  return h;
+}
+
+/* --- report --- */
+function vReport(aid,uid){
+  if(!S.staff&&uid!==S.me.id)return '<div class="empty">Not available.</div>';
+  const s=S.sub;
+  if(s===undefined)return '<div class="empty">Loading…</div>';
+  if(s===false)return '<div class="empty">Submission not found.</div>';
+  const a=getA(aid),c=2*Math.PI*38,cms=S.fb.filter(x=>x.start>=0);
+  const lbl=x=>{if(x.kind!=='peer')return x.label;if(!S.staff)return "Another student's work";const m=Object.values(S.meta).find(m=>m.fpId===x.fp);return m?'Submission by '+nm(m.uid):"Another student's submission";};
+  let h=`<div class="card"><div class="ring"><svg width="96" height="96" viewBox="0 0 96 96"><circle cx="48" cy="48" r="38" fill="none" stroke="var(--chip)" stroke-width="10"/><circle cx="48" cy="48" r="38" fill="none" stroke="var(--${band(s.score)})" stroke-width="10" stroke-linecap="round" stroke-dasharray="${Math.min(100,s.score)/100*c} ${c}" transform="rotate(-90 48 48)"/><text x="48" y="54" text-anchor="middle" font-size="20" font-weight="700" fill="currentColor">${s.score}%</text></svg>
+  <div class="grow"><b>${esc(S.staff?nm(uid):'Your submission')}</b><div class="muted">${esc(a?a.title:'')}</div><div class="muted">${s.words} words · v${s.version||1} · ${fmt(s.at)}${s.late?' · late':''}</div></div></div>
+  ${S.staff?'<div style="margin-top:10px"><button class="btn sm" data-act="recheck" data-aid="'+aid+'" data-uid="'+uid+'" '+(S.busy?'disabled':'')+'>'+(S.busy||'Re-run similarity check')+'</button></div>':''}</div>`;
+  h+=`<div class="card"><h3 style="margin-top:0">Matched sources</h3>${(s.sources||[]).length?s.sources.map((x,i)=>`<div class="src"><span class="sw h${i%6}"></span><span class="grow">${esc(lbl(x))}</span><b>${x.pct}%</b></div>`).join(''):'<div class="muted">No matching passages found.</div>'}</div>`;
+  h+=`<div class="card"><div class="row between"><h3 style="margin:0">Document</h3>${S.staff?'<button class="btn sm" data-act="generalComment">+ General comment</button>':''}</div>
+  <div class="muted" style="margin:6px 0 8px">${S.staff?'Select text to leave a comment.':'Underlined passages have teacher comments.'}</div>
+  <div class="doc" id="doc" data-selectable="submission">${annotate(s.text,s.matches||[],cms)}</div></div>`;
+  h+=`<div class="card"><h3 style="margin-top:0">Comments (${S.fb.length})</h3>${S.fb.length?S.fb.map(c=>`<div class="ans" id="cm-${c.id}">${c.quote?`<blockquote>${esc(c.quote.slice(0,200))}</blockquote>`:'<div class="muted">General comment</div>'}<div style="white-space:pre-wrap">${esc(c.text)}</div><div class="muted">${esc(c.by===S.me.id?'You':nm(c.by))} · ${c.role==='teacher'?'Teacher':'TA'} · ${ago(c.at)}${S.staff?` · <a href="javascript:void 0" data-act="delCm" data-id="${c.id}" data-uid="${uid}">delete</a>`:''}</div></div>`).join(''):'<div class="muted">No comments yet.</div>'}</div>`;
+  return h;
+}
+function annotate(text,matches,cms){
+  const pts=new Set([0,text.length]);
+  matches.forEach(m=>{pts.add(m[0]);pts.add(m[1]);});cms.forEach(c=>{pts.add(c.start);pts.add(Math.min(c.end,text.length));});
+  const b=[...pts].filter(p=>p>=0&&p<=text.length).sort((x,y)=>x-y);let h='';
+  for(let i=0;i<b.length-1;i++){
+    const s=b[i],e=b[i+1],seg=text.slice(s,e),m=matches.find(m=>m[0]<=s&&m[1]>=e),cs=cms.filter(c=>c.start<=s&&c.end>=e);
+    if(!m&&!cs.length){h+=esc(seg);continue;}
+    h+=`<span class="${m?'h'+(m[2]%6):''}${cs.length?' hascm':''}"${m?` data-src="${m[2]}"`:''}${cs.length?` data-cm="${cs.map(c=>c.id).join(',')}"`:''}>${esc(seg)}</span>`;
+  }
+  return h;
+}
+function vSheet(){
+  const sh=S.sheet;
+  return `<div class="sheet"><div><h3 style="margin-top:0">${sh.start>=0?'Comment on selection':'General comment'}</h3>${sh.quote?`<blockquote>${esc(sh.quote.slice(0,200))}</blockquote>`:''}
+  <textarea id="ctext" data-draft="ctext" style="min-height:90px" autofocus>${esc(S.draft.ctext||'')}</textarea>
+  <div class="row" style="margin-top:10px"><button class="btn primary" data-act="saveCm">Save comment</button><button class="btn" data-act="closeSheet">Cancel</button></div></div></div>`;
+}
+
+/* ---------- selection toolbar ---------- */
+let curSel=null;
+document.addEventListener('selectionchange',()=>{
+  const bar=$('#selbar'),sel=getSelection();
+  const hide=()=>{curSel=null;bar.hidden=true;};
+  if(!sel||sel.isCollapsed||!sel.rangeCount||S.sheet)return hide();
+  const r=sel.getRangeAt(0),n=r.commonAncestorContainer,host=(n.nodeType===1?n:n.parentElement)?.closest('[data-selectable]');
+  if(!host)return hide();
+  const kind=host.dataset.selectable;
+  if(kind==='submission'&&!S.staff)return hide();
+  const pre=r.cloneRange();pre.selectNodeContents(host);pre.setEnd(r.startContainer,r.startOffset);
+  const start=pre.toString().length,q=sel.toString();
+  if(!q.trim())return hide();
+  curSel={kind,start,end:start+q.length,quote:q.trim()};
+  $('#selbtn').textContent=kind==='brief'?'Ask about this passage':'Comment on selection';
+  bar.hidden=false;
+});
+$('#selbtn').onclick=()=>{
+  if(!curSel)return;const c=curSel;getSelection().removeAllRanges();$('#selbar').hidden=true;
+  if(c.kind==='brief'){S.draft.quote=c.quote.slice(0,300);S.qaOpen=true;const aid=route()[1];S.tab[aid]='qa';render(true);window.scrollTo(0,0);}
+  else{S.sheet={start:c.start,end:c.end,quote:c.quote};S.draft.ctext='';render(true);setTimeout(()=>$('#ctext')&&$('#ctext').focus(),50);}
+};
+
+/* ---------- events ---------- */
+app.addEventListener('input',e=>{const t=e.target,k=t.dataset&&t.dataset.draft;if(k)S.draft[k]=t.type==='checkbox'?t.checked:t.value;});
+app.addEventListener('change',async e=>{
+  const t=e.target;
+  if(t.dataset.draft&&t.type==='checkbox')S.draft[t.dataset.draft]=t.checked;
+  if(t.dataset.file&&t.files&&t.files[0]){
+    try{const txt=await readFile(t.files[0]);S.draft[t.dataset.file]=txt;if(t.dataset.file==='stext')S.draft.sfile=t.files[0].name;S.err='';render(true);}
+    catch(err){S.err=err.message;render(true);}
+  }
+});
+app.addEventListener('click',e=>{
+  const el=e.target.closest('[data-act]');
+  if(el){const f=A[el.dataset.act];if(f){e.preventDefault();f(el);}return;}
+  const sp=e.target.closest('[data-cm]');
+  if(sp){const id=sp.dataset.cm.split(',')[0],c=document.getElementById('cm-'+id);if(c){c.scrollIntoView({behavior:'smooth',block:'center'});c.classList.remove('flash');void c.offsetWidth;c.classList.add('flash');}return;}
+});
+async function castVote(qid,aid){
+  const vid=rid()+rid();
+  await db.doc('votes/'+vid).set({qid,aid,at:Date.now()});            /* public row: no identity */
+  await db.doc(`data/users/${S.me.id}/v-${qid}`).set({qid,vid});     /* private pointer: only this person can read it */
+}
+const DARWIN='It is interesting to contemplate an entangled bank, clothed with many plants of many kinds, with birds singing on the bushes, with various insects flitting about, and with worms crawling through the damp earth, and to reflect that these elaborately constructed forms, so different from each other, and dependent on each other in so complex a manner, have all been produced by laws acting around us.';
+const TEXTBOOK='Ecological communities are shaped by interactions among species, including competition, predation, and mutualism, and these interactions create selective pressures that drive adaptation over many generations.';
+async function seedDemoSubmissions(aid){
+  await db.doc(`assignments/${aid}/refs/${rid()}`).set({label:'Course textbook, ch. 4',text:TEXTBOOK,at:Date.now()});
+  const refs=[{kind:'ref',label:'Darwin, On the Origin of Species (1859)',set:new Set(shingles(tokenize(DARWIN)))},{kind:'ref',label:'Course textbook, ch. 4',set:new Set(shingles(tokenize(TEXTBOOK)))}];
+  const alexText=['Natural selection does not act on organisms in isolation. It acts on the web of relationships between them, so the survival of any one species depends on the others around it. This essay argues that interdependence, not competition alone, is the main force shaping an ecosystem.',
+   'Darwin captured this idea in a famous image. '+DARWIN+' The point is that no organism on that bank could exist without the others.',
+   'Modern ecology supports this view. '+TEXTBOOK+' A good example is the relationship between flowering plants and their pollinators, where each side shapes the other.',
+   'In conclusion, interdependence is central to natural selection. Species adapt to each other as much as they adapt to the physical environment.'].join('\n\n');
+  const joText='Ecosystems work because species rely on each other. Bees need flowers for food and flowers need bees to reproduce. Over time both sides change in response to the other, which is natural selection at work. Removing one species can ripple through the whole community, as the return of wolves to Yellowstone showed.';
+  const mk=async(uid,text,title,hoursAgo)=>{
+    const fpId=rid()+rid(),r=analyze(text,refs),at=Date.now()-hoursAgo*36e5;
+    await db.doc(`submissions/${uid}/a/${aid}`).set({aid,uid,fpId,title,text,words:r.words,at,late:false,version:1,score:r.score,matches:r.matches,sources:r.sources});
+    await db.doc(`fp/${fpId}`).set({aid,h:r.hashes.join(' ')});
+    await db.doc(`submissions/${uid}`).set({uid,a:{[aid]:at}});};
+  await mk('u_alex',alexText,'essay2_final.docx',20);
+  await mk('u_jo',joText,'ecology_essay.txt',5);
+  const c=(sub,text,by,role,mins)=>{const i=alexText.indexOf(sub);return db.doc(`feedback/u_alex/c/${rid()}`).set({aid,start:i<0?-1:i,end:i<0?-1:i+sub.length,quote:i<0?'':sub,text,by,role,at:Date.now()-mins*6e4});};
+  await c('This essay argues that interdependence, not competition alone, is the main force shaping an ecosystem.','Clear, arguable thesis. Nicely done. Try naming the two or three pieces of evidence you will use.','u_rivera','teacher',600);
+  await c(DARWIN,'This passage is copied word for word from Darwin. Put it in quotation marks and add an APA citation (Darwin, 1859). Right now it reads as your own writing.','u_rivera','teacher',590);
+  await c('Ecological communities are shaped by interactions among species','This sentence matches the course textbook almost exactly. Paraphrase it in your own words, or quote and cite it.','u_chen','ta',300);
+  await c('A good example is the relationship between flowering plants and their pollinators','Good, this is your own example. Add a source for it: the brief asks for three pieces of evidence.','u_chen','ta',295);
+  await db.doc(`feedback/u_alex/c/${rid()}`).set({aid,start:-1,end:-1,quote:'',text:'Strong structure and a good argument. The main fix is attribution: two passages are quoted without citation. Fix those and add one more source, then resubmit.',by:'u_rivera',role:'teacher',at:Date.now()-580*6e4});
+}
+const A={
+  login:()=>{S.err=loginWith(S.draft.lemail);if(S.err)render(true);},
+  loginAs:el=>{loginWith(el.dataset.email);},
+  resetDemo:()=>{if(confirm('Delete ALL demo data in this browser?')){localStorage.removeItem('pt_db');localStorage.removeItem('pt_accts');sessionStorage.removeItem('pt_session');location.reload();}},
+  go:el=>{location.hash=el.dataset.to;},
+  tab:el=>{S.tab[el.dataset.aid]=el.dataset.tab;S.err='';render(true);},
+  openAsk:()=>{S.qaOpen=true;render(true);},
+  closeAsk:()=>{S.qaOpen=false;S.draft.quote='';S.draft.qtext='';render(true);},
+  clearQuote:()=>{S.draft.quote='';render(true);},
+  qaTopic:el=>{S.qaTopic=el.dataset.t;render(true);},
+  qaSort:el=>{S.qaSort=el.dataset.s;render(true);},
+  openQ:el=>{S.tab[el.dataset.aid]='qa';location.hash='/a/'+el.dataset.aid;},
+  answerOpen:el=>{S.answering=el.dataset.id;S.draft.atext='';render(true);},
+  answerCancel:()=>{S.answering=null;S.resolveAfter=null;render(true);},
+  closeSheet:()=>{S.sheet=null;render(true);},
+  generalComment:()=>{S.sheet={start:-1,end:-1,quote:''};S.draft.ctext='';render(true);},
+
+  async sample(){
+    if(!S.staff||S.busy)return;S.busy='x';const id=rid();
+    await db.doc('assignments/'+id).set({title:'Essay 2: Ecology and Evolution',unit:'Unit 3: Evolution',due:Date.now()+7*864e5,topics:['Thesis','Using evidence','Citations','Word limit'],by:S.me.id,at:Date.now(),
+      brief:'Write a 1,000 word essay discussing how natural selection shapes the relationships between organisms in an ecosystem.\n\nYour essay must:\n1. State a clear thesis in the first paragraph.\n2. Use at least three pieces of evidence from the course readings.\n3. Cite all sources in APA format.\n\nConsider Darwin\'s image of the entangled bank as a starting point for your argument. You should explain what the passage tells us about interdependence, and whether modern ecology supports that view.'});
+    await db.doc(`assignments/${id}/refs/${rid()}`).set({label:'Darwin, On the Origin of Species (1859)',text:'It is interesting to contemplate an entangled bank, clothed with many plants of many kinds, with birds singing on the bushes, with various insects flitting about, and with worms crawling through the damp earth, and to reflect that these elaborately constructed forms, so different from each other, and dependent on each other in so complex a manner, have all been produced by laws acting around us.'});
+    const demo=[['Thesis','What counts as a clear thesis: one sentence or a full paragraph?','',5],['Using evidence','Can all three pieces of evidence come from the same reading?','',3],['Citations','Do we cite the entangled bank passage in APA even though it is in the brief?','Consider Darwin\'s image of the entangled bank as a starting point for your argument.',6],['Using evidence','Does "modern ecology" mean we need sources published after 2010?','whether modern ecology supports that view',4],['Word limit','Is the 1,000 word limit including the reference list?','',2],['Thesis','Should the thesis take a side on whether interdependence is the main idea?','explain what the passage tells us about interdependence',3]];
+    for(let i=0;i<demo.length;i++){const [topic,text,quote,n]=demo[i],qid=rid();
+      await db.doc('questions/'+qid).set({aid:id,text,topic,quote,anon:true,at:Date.now()-(i+1)*36e5,resolved:i===4});
+      if(i===4)await db.doc('answers/'+rid()).set({qid,aid:id,text:'No. The 1,000 word limit covers the main text only. The reference list and title page are not counted.',staff:true,by:'u_rivera',at:Date.now()-(i)*36e5});
+      if(i===2)await db.doc('answers/'+rid()).set({qid,aid:id,text:'Yes. Cite it as (Darwin, 1859). A passage that is quoted in the brief still needs a citation when you use it in your essay.',staff:true,by:'u_chen',at:Date.now()-(i)*36e5});
+      await Promise.all(Array.from({length:n},()=>db.doc('votes/'+rid()+rid()).set({qid,aid:id,at:Date.now()})));}
+    await seedDemoSubmissions(id);
+    S.busy='';render(true);
+  },
+  async createA(){
+    const d=S.draft;S.err='';
+    if(!(d.ntitle||'').trim()){S.err='Please add a title.';return render(true);}
+    S.busy='Creating…';render(true);
+    try{
+      const id=rid();
+      await db.doc('assignments/'+id).set({title:d.ntitle.trim(),unit:(d.nunit||'').trim(),due:d.ndue?Date.parse(d.ndue):0,topics:(d.ntopics||'').split(',').map(s=>s.trim()).filter(Boolean).slice(0,12),brief:(d.nbrief||'').slice(0,100000),by:S.me.id,at:Date.now()});
+      ['ntitle','nunit','ndue','ntopics','nbrief'].forEach(k=>delete d[k]);S.busy='';location.hash='/a/'+id;
+    }catch(e){S.busy='';S.err='Could not save: '+(e.message||e.code);render(true);}
+  },
+  async delA(el){if(!confirm('Delete this assignment? Submissions will no longer be listed.'))return;await db.doc('assignments/'+el.dataset.aid).delete();location.hash='/';},
+  async addRef(el){
+    const d=S.draft,aid=el.dataset.aid;S.err='';
+    if(tokenize(d.rtext||'').length<10){S.err='Add at least 10 words of source text.';return render(true);}
+    try{await db.doc(`assignments/${aid}/refs/${rid()}`).set({label:(d.rlabel||'Reference source').trim(),text:d.rtext.slice(0,200000),at:Date.now()});d.rlabel='';d.rtext='';await loadRefs(aid);}catch(e){S.err='Could not save: '+(e.message||e.code);}
+    render(true);
+  },
+  async delRef(el){await db.doc(`assignments/${el.dataset.aid}/refs/${el.dataset.id}`).delete();loadRefs(el.dataset.aid);},
+
+  async submit(el){
+    const aid=el.dataset.aid,a=getA(aid),d=S.draft,text=(d.stext||'').replace(/\r\n/g,'\n').trim();S.err='';
+    const wc=tokenize(text).length;
+    if(wc<20){S.err='Please add at least 20 words.';return render(true);}
+    if(wc>10000){S.err='Submissions are limited to 10,000 words.';return render(true);}
+    try{
+      S.busy='Checking similarity…';render(true);
+      const prev=S.mySubs[aid],fpId=(prev&&prev.fpId)||(rid()+rid()),srcs=await loadSources(aid,fpId),r=analyze(text,srcs);
+      S.busy='Saving…';render(true);
+      const late=!!(a&&a.due&&Date.now()>a.due),at=Date.now(),title=(d.stitle||'').trim()||(d.sfile||'Submission');
+      await db.doc(`submissions/${S.me.id}/a/${aid}`).set({aid,uid:S.me.id,fpId,title,text,words:r.words,at,late,version:(prev&&prev.version||0)+1,score:r.score,matches:r.matches,sources:r.sources});
+      await db.doc(`fp/${fpId}`).set({aid,h:r.hashes.slice(0,12000).join(' ')});
+      const sref=db.doc(`submissions/${S.me.id}`),sd=await sref.get();if(sd.exists)await sref.update({uid:S.me.id,a:{[aid]:at}});else await sref.set({uid:S.me.id,a:{[aid]:at}});
+      ['stext','stitle','sfile'].forEach(k=>delete d[k]);S.busy='';
+      location.hash=`/s/${aid}/${S.me.id}`;
+    }catch(e){S.busy='';S.err='Submission failed: '+(e.message||e.code||e);render(true);}
+  },
+  async recheck(el){
+    const aid=el.dataset.aid,uid=el.dataset.uid,s=S.sub;if(!s)return;
+    try{
+      S.busy='Checking…';render(true);
+      const r=analyze(s.text,await loadSources(aid,s.fpId));
+      await db.doc(`submissions/${uid}/a/${aid}`).update({score:r.score,matches:r.matches,sources:r.sources});
+      if(S.meta[aid+'-'+uid])S.meta[aid+'-'+uid].score=r.score;
+      S.sub={...s,score:r.score,matches:r.matches,sources:r.sources};
+    }catch(e){S.err=e.message||'failed';}
+    S.busy='';render(true);
+  },
+
+  async saveCm(){
+    const sh=S.sheet,txt=(S.draft.ctext||'').trim(),p=route();if(!txt||!sh)return;
+    const aid=p[1],uid=p[2];
+    try{await db.doc(`feedback/${uid}/c/${rid()}`).set({aid,start:sh.start,end:sh.end,quote:sh.quote||'',text:txt,by:S.me.id,role:S.owner?'teacher':'ta',at:Date.now()});S.draft.ctext='';S.sheet=null;}
+    catch(e){alert('Could not save comment: '+(e.message||e.code));}
+    render(true);
+  },
+  async delCm(el){await db.doc(`feedback/${el.dataset.uid}/c/${el.dataset.id}`).delete();},
+
+  async ask(el){
+    const aid=el.dataset.aid,d=S.draft,text=(d.qtext||'').trim();S.err='';
+    if(text.length<5){S.err='Write your question first.';return render(true);}
+    try{
+      const id=rid(),at=Date.now(),topic=d.qtopic||'General';
+      const anon=d.qanon!==false,doc={aid,text:text.slice(0,2000),topic,quote:d.quote||'',anon,at,resolved:false};
+      if(!anon)doc.by=S.me.id;
+      await db.doc('questions/'+id).set(doc);
+      await db.doc(`data/users/${S.me.id}/q-${id}`).set({qid:id});
+      await castVote(id,aid);
+      d.qtext='';d.quote='';S.qaOpen=false;
+    }catch(e){S.err='Could not post: '+(e.message||e.code);}
+    render(true);
+  },
+  async vote(el){
+    const id=el.dataset.id;
+    try{if(S.myVotes[id]){const v=S.myVotes[id];await db.doc('votes/'+v).delete();await db.doc(`data/users/${S.me.id}/v-${id}`).delete();}else await castVote(id,el.dataset.aid);}catch(e){console.warn(e);}
+  },
+  async answer(el){
+    const t=(S.draft.atext||'').trim();if(!t)return;
+    try{const ad={qid:el.dataset.id,aid:el.dataset.aid,text:t.slice(0,3000),staff:S.staff,at:Date.now()};if(S.staff)ad.by=S.me.id;await db.doc('answers/'+rid()).set(ad);if(S.staff&&S.resolveAfter===el.dataset.id)await db.doc('questions/'+el.dataset.id).update({resolved:true});S.resolveAfter=null;S.answering=null;S.draft.atext='';}catch(e){console.warn(e);}
+    render(true);
+  },
+  async resolve(el){
+    const id=el.dataset.id;
+    if(el.dataset.v==='1'&&!S.answers.some(x=>x.qid===id&&x.staff)){S.answering=id;S.resolveAfter=id;S.draft.atext='';render(true);return;}
+    await db.doc('questions/'+id).update({resolved:el.dataset.v==='1'});},
+  async delQ(el){if(!confirm('Delete this question?'))return;await db.doc('questions/'+el.dataset.id).delete();}
+};
+(function init(){
+  let acct=null;try{acct=JSON.parse(sessionStorage.getItem('pt_session')||'null');}catch(e){}
+  if(!acct){S.login=true;S.ready=true;render(true);return;}
+  ACCTS.forEach(rememberAcct);rememberAcct(acct);S.role=acct.role;S.meName=acct.name;boot(acct);
+})();
+</script>
+</body>
+</html>
